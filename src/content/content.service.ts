@@ -1,5 +1,4 @@
 import {
-  ConflictException,
   Injectable,
   NotFoundException,
   OnApplicationBootstrap,
@@ -13,6 +12,15 @@ import type {
   WebsitePageId,
   WebsitePageSummary,
 } from './content.types';
+import type { StoredWebsitePage } from './content.models';
+import {
+  assertExpectedDraftRevision,
+  assertHistoricalRevision,
+  createDraft,
+  createPublication,
+  createRestoredDraft,
+  throwContentConflict,
+} from './content.transitions';
 import {
   parseWebsitePageId,
   validateWebsitePageContent,
@@ -22,30 +30,7 @@ import {
   type WebsitePageDocument,
 } from './schemas/website-page.schema';
 
-const HISTORY_LIMIT = 10;
 const SEED_ACTOR = 'system:initial-content';
-
-interface StoredPublishedRevision {
-  revision: number;
-  content: WebsitePageContent;
-  publishedAt: Date | string;
-  publishedBy: string;
-}
-
-interface StoredDraft {
-  revision: number;
-  basedOnPublishedRevision: number;
-  content: WebsitePageContent;
-  updatedAt: Date | string;
-  updatedBy: string;
-}
-
-interface StoredWebsitePage {
-  pageId: WebsitePageId;
-  published: StoredPublishedRevision;
-  draft?: StoredDraft | null;
-  history?: StoredPublishedRevision[];
-}
 
 @Injectable()
 export class ContentService implements OnApplicationBootstrap {
@@ -117,12 +102,13 @@ export class ContentService implements OnApplicationBootstrap {
     const pageId = parseWebsitePageId(pageIdValue);
     const content = validateWebsitePageContent(pageId, contentValue);
     const current = await this.findPage(pageId);
-    this.assertDraftRevision(
-      current.draft?.revision ?? null,
+    const draft = createDraft(
+      current,
       expectedDraftRevision,
+      content,
+      actor,
+      new Date(),
     );
-    const revision = (expectedDraftRevision ?? 0) + 1;
-    const updatedAt = new Date();
     const updated = await this.pageModel
       .findOneAndUpdate(
         {
@@ -133,21 +119,13 @@ export class ContentService implements OnApplicationBootstrap {
             : { 'draft.revision': expectedDraftRevision }),
         },
         {
-          $set: {
-            draft: {
-              revision,
-              basedOnPublishedRevision: current.published.revision,
-              content,
-              updatedAt,
-              updatedBy: actor,
-            },
-          },
+          $set: { draft },
         },
         { returnDocument: 'after' },
       )
       .lean()
       .exec();
-    if (!updated) this.throwConflict();
+    if (!updated) throwContentConflict();
     return this.toAdminPage(updated);
   }
 
@@ -158,28 +136,13 @@ export class ContentService implements OnApplicationBootstrap {
   ) {
     const pageId = parseWebsitePageId(pageIdValue);
     const current = await this.findPage(pageId);
-    this.assertDraftRevision(
-      current.draft?.revision ?? null,
+    const { published, history } = createPublication(
+      current,
       expectedDraftRevision,
+      actor,
+      new Date(),
     );
-    if (!current.draft || expectedDraftRevision === null) {
-      throw new ConflictException('Save a draft before publishing.');
-    }
-    if (current.draft.basedOnPublishedRevision !== current.published.revision) {
-      this.throwConflict();
-    }
 
-    const publishedAt = new Date();
-    const published = {
-      revision: current.published.revision + 1,
-      content: current.draft.content,
-      publishedAt,
-      publishedBy: actor,
-    };
-    const history = [current.published, ...(current.history ?? [])].slice(
-      0,
-      HISTORY_LIMIT,
-    );
     const updated = await this.pageModel
       .findOneAndUpdate(
         {
@@ -196,7 +159,7 @@ export class ContentService implements OnApplicationBootstrap {
       )
       .lean()
       .exec();
-    if (!updated) this.throwConflict();
+    if (!updated) throwContentConflict();
     return this.toAdminPage(updated);
   }
 
@@ -206,10 +169,7 @@ export class ContentService implements OnApplicationBootstrap {
   ) {
     const pageId = parseWebsitePageId(pageIdValue);
     const current = await this.findPage(pageId);
-    this.assertDraftRevision(
-      current.draft?.revision ?? null,
-      expectedDraftRevision,
-    );
+    assertExpectedDraftRevision(current, expectedDraftRevision);
     if (expectedDraftRevision === null) return this.toAdminPage(current);
     const updated = await this.pageModel
       .findOneAndUpdate(
@@ -219,7 +179,7 @@ export class ContentService implements OnApplicationBootstrap {
       )
       .lean()
       .exec();
-    if (!updated) this.throwConflict();
+    if (!updated) throwContentConflict();
     return this.toAdminPage(updated);
   }
 
@@ -230,19 +190,15 @@ export class ContentService implements OnApplicationBootstrap {
     actor: string,
   ) {
     const pageId = parseWebsitePageId(pageIdValue);
-    if (!Number.isInteger(revision) || revision < 1) {
-      throw new NotFoundException('That published revision does not exist.');
-    }
+    assertHistoricalRevision(revision);
     const current = await this.findPage(pageId);
-    this.assertDraftRevision(
-      current.draft?.revision ?? null,
+    const draft = createRestoredDraft(
+      current,
+      revision,
       expectedDraftRevision,
+      actor,
+      new Date(),
     );
-    const source = current.history?.find((item) => item.revision === revision);
-    if (!source) {
-      throw new NotFoundException('That published revision does not exist.');
-    }
-    const nextDraftRevision = (expectedDraftRevision ?? 0) + 1;
     const updated = await this.pageModel
       .findOneAndUpdate(
         {
@@ -253,21 +209,13 @@ export class ContentService implements OnApplicationBootstrap {
             : { 'draft.revision': expectedDraftRevision }),
         },
         {
-          $set: {
-            draft: {
-              revision: nextDraftRevision,
-              basedOnPublishedRevision: current.published.revision,
-              content: source.content,
-              updatedAt: new Date(),
-              updatedBy: actor,
-            },
-          },
+          $set: { draft },
         },
         { returnDocument: 'after' },
       )
       .lean()
       .exec();
-    if (!updated) this.throwConflict();
+    if (!updated) throwContentConflict();
     return this.toAdminPage(updated);
   }
 
@@ -318,16 +266,6 @@ export class ContentService implements OnApplicationBootstrap {
         publishedBy: item.publishedBy,
       })),
     };
-  }
-
-  private assertDraftRevision(actual: number | null, expected: number | null) {
-    if (actual !== expected) this.throwConflict();
-  }
-
-  private throwConflict(): never {
-    throw new ConflictException(
-      'This page changed in another session. Reload it before continuing.',
-    );
   }
 
   private toIso(value: Date | string): string {
