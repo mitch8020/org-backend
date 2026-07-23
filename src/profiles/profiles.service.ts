@@ -19,7 +19,11 @@ export class ProfilesService {
       .findOneAndUpdate(
         { auth0Sub },
         { $setOnInsert: { auth0Sub } },
-        { new: true, upsert: true, setDefaultsOnInsert: true },
+        {
+          returnDocument: 'after',
+          upsert: true,
+          setDefaultsOnInsert: true,
+        },
       )
       .lean()
       .exec();
@@ -30,7 +34,11 @@ export class ProfilesService {
       .findOneAndUpdate(
         { auth0Sub },
         { $setOnInsert: { auth0Sub } },
-        { new: true, upsert: true, setDefaultsOnInsert: true },
+        {
+          returnDocument: 'after',
+          upsert: true,
+          setDefaultsOnInsert: true,
+        },
       )
       .exec();
   }
@@ -49,7 +57,11 @@ export class ProfilesService {
             beliefsSummary: input.beliefsSummary.trim(),
           },
         },
-        { new: true, upsert: true, setDefaultsOnInsert: true },
+        {
+          returnDocument: 'after',
+          upsert: true,
+          setDefaultsOnInsert: true,
+        },
       )
       .lean()
       .exec();
@@ -74,7 +86,11 @@ export class ProfilesService {
             },
           },
         },
-        { new: true, upsert: true, setDefaultsOnInsert: true },
+        {
+          returnDocument: 'after',
+          upsert: true,
+          setDefaultsOnInsert: true,
+        },
       )
       .lean()
       .exec();
@@ -85,7 +101,11 @@ export class ProfilesService {
       .findOneAndUpdate(
         { auth0Sub },
         { $unset: { shippingAddress: 1 } },
-        { new: true, upsert: true, setDefaultsOnInsert: true },
+        {
+          returnDocument: 'after',
+          upsert: true,
+          setDefaultsOnInsert: true,
+        },
       )
       .lean()
       .exec();

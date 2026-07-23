@@ -8,7 +8,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Auth0Guard } from '../auth/auth.guard';
-import { getUserSub } from '../auth/auth.helpers';
+import { getCapabilities, getUserSub } from '../auth/auth.helpers';
 import type { AuthenticatedRequest } from '../auth/auth.types';
 import { ProfilesService } from './profiles.service';
 import { ShippingAddressDto, UpdateProfileDto } from './profiles.dto';
@@ -21,6 +21,11 @@ export class ProfilesController {
   @Get()
   getMe(@Req() request: AuthenticatedRequest) {
     return this.profiles.getOrCreate(getUserSub(request));
+  }
+
+  @Get('capabilities')
+  getCapabilities(@Req() request: AuthenticatedRequest) {
+    return getCapabilities(request);
   }
 
   @Patch()

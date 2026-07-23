@@ -28,7 +28,7 @@ export class PermissionsGuard implements CanActivate {
       : [];
     if (!required.every((permission) => permissions.includes(permission))) {
       throw new ForbiddenException(
-        'Your account does not have permission to manage orders.',
+        'Your account does not have permission to perform this action.',
       );
     }
     return true;

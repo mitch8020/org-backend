@@ -69,7 +69,11 @@ export class CartsService {
               : {}),
           },
         },
-        { upsert: true, new: true, setDefaultsOnInsert: true },
+        {
+          upsert: true,
+          returnDocument: 'after',
+          setDefaultsOnInsert: true,
+        },
       )
       .exec();
     return this.toResponse(cart);
@@ -80,7 +84,11 @@ export class CartsService {
       .findOneAndUpdate(
         { ownerSub },
         { $setOnInsert: { ownerSub, items: [] } },
-        { upsert: true, new: true, setDefaultsOnInsert: true },
+        {
+          upsert: true,
+          returnDocument: 'after',
+          setDefaultsOnInsert: true,
+        },
       )
       .exec();
   }
@@ -105,7 +113,11 @@ export class CartsService {
               : {}),
           },
         },
-        { upsert: true, new: true, setDefaultsOnInsert: true },
+        {
+          upsert: true,
+          returnDocument: 'after',
+          setDefaultsOnInsert: true,
+        },
       )
       .exec();
 

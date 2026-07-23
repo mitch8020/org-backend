@@ -12,6 +12,7 @@ import { ProfilesModule } from './profiles/profiles.module';
 import { OrdersModule } from './orders/orders.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { configureDnsServers } from './config/dns';
+import { ContentModule } from './content/content.module';
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { configureDnsServers } from './config/dns';
     CartsModule,
     ProfilesModule,
     OrdersModule,
+    ContentModule,
   ],
   controllers: [AppController],
   providers: [
