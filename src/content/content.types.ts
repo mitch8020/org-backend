@@ -81,3 +81,25 @@ export interface WebsitePageSummary {
   draftRevision: number | null;
   updatedAt: string;
 }
+
+export interface ContentRevision {
+  revision: number;
+  content: WebsitePageContent;
+  publishedAt: string;
+  publishedBy: string;
+}
+
+export interface ContentDraft {
+  revision: number;
+  basedOnPublishedRevision: number;
+  content: WebsitePageContent;
+  updatedAt: string;
+  updatedBy: string;
+}
+
+export interface AdminWebsitePage {
+  pageId: WebsitePageId;
+  published: ContentRevision;
+  draft: ContentDraft | null;
+  history: ContentRevision[];
+}
