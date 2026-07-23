@@ -31,6 +31,21 @@
 $ npm install
 ```
 
+### MongoDB Atlas DNS
+
+The backend normally uses the operating system's DNS configuration. If a local
+router, VPN, or ISP resolver rejects the SRV lookup used by a
+`mongodb+srv://` connection string, set `DNS_SERVERS` to comma-separated DNS
+resolver IP addresses:
+
+```dotenv
+DNS_SERVERS=1.1.1.1,8.8.8.8
+```
+
+The override is applied before Mongoose starts its connection. Leave the
+variable empty or unset on hosts whose normal DNS resolver supports Atlas SRV
+records.
+
 ## Compile and run the project
 
 ```bash
