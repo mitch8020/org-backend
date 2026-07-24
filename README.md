@@ -70,20 +70,39 @@ $ npm run test:e2e
 
 # test coverage
 $ npm run test:cov
+
+# unit coverage followed by API end-to-end tests
+$ npm run test:all
 ```
 
-## Deployment
+Unit coverage enforces 100% statements, branches, functions, and lines across
+the controllers, guards, services, content rules, and other executable business
+logic listed in `package.json`. Framework bootstrap/modules, DTO declarations,
+Mongoose schema declarations, and static seed data are verified by builds,
+validation tests, schema tests, and the API E2E suite rather than counted in the
+unit coverage denominator.
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+## Heroku deployment
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+The repository includes a `Procfile` that starts the compiled application with
+`npm run start:prod`. Heroku runs `npm run build` during the Node.js build and
+provides the runtime `PORT` automatically.
+
+Configure every required value from `.env.example` as a Heroku config var. Do
+not set `PORT` yourself. Set `NODE_ENV=production`, and leave optional email
+values empty when outbound order email is not configured.
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+heroku config:set NODE_ENV=production --app <app-name>
+git push heroku main
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+After a deploy, verify both the dyno and the public health endpoint:
+
+```bash
+heroku ps --app <app-name>
+curl https://<app-name>.herokuapp.com/api/v1/health
+```
 
 ## Resources
 
