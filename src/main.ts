@@ -3,6 +3,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
+import { createCorsOptions } from './config/cors';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -15,17 +16,7 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api/v1');
   app.use(helmet());
-  app.enableCors({
-    origin: origins,
-    credentials: false,
-    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: [
-      'Authorization',
-      'Content-Type',
-      'Idempotency-Key',
-      'X-Cart-Token',
-    ],
-  });
+  app.enableCors(createCorsOptions(origins));
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,

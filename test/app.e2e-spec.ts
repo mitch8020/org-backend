@@ -25,6 +25,7 @@ import { ProductsController } from '../src/products/products.controller';
 import { ProductsService } from '../src/products/products.service';
 import { ProfilesController } from '../src/profiles/profiles.controller';
 import { ProfilesService } from '../src/profiles/profiles.service';
+import { createCorsOptions } from '../src/config/cors';
 
 const product = {
   slug: 'mesh-tool',
@@ -153,6 +154,7 @@ describe('ORG API (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api/v1');
+    app.enableCors(createCorsOptions(['http://localhost:50073']));
     app.useGlobalPipes(
       new ValidationPipe({
         transform: true,
@@ -282,5 +284,18 @@ describe('ORG API (e2e)', () => {
       { kind: 'reference' },
       'auth0|e2e',
     );
+  });
+
+  it('allows the administrator draft PUT request through CORS preflight', async () => {
+    await request(app.getHttpServer())
+      .options('/api/v1/admin/content/pages/community/draft')
+      .set('Origin', 'http://localhost:50073')
+      .set('Access-Control-Request-Method', 'PUT')
+      .set('Access-Control-Request-Headers', 'authorization,content-type')
+      .expect(204)
+      .expect('Access-Control-Allow-Origin', 'http://localhost:50073')
+      .expect(({ headers }) => {
+        expect(headers['access-control-allow-methods']).toContain('PUT');
+      });
   });
 });
