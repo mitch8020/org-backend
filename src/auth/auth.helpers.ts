@@ -25,10 +25,17 @@ export function hasPermissions(
   return required.every((permission) => permissions.includes(permission));
 }
 
-export function getCapabilities(request: AuthenticatedRequest) {
+export function getCapabilities(
+  request: AuthenticatedRequest,
+  hasAdminAccess = false,
+) {
   return {
-    canManageOrders: hasPermissions(request, 'read:orders', 'update:orders'),
-    canEditWebsite: hasPermissions(request, 'read:content', 'update:content'),
-    canPublishWebsite: hasPermissions(request, 'publish:content'),
+    canManageOrders:
+      hasAdminAccess || hasPermissions(request, 'read:orders', 'update:orders'),
+    canEditWebsite:
+      hasAdminAccess ||
+      hasPermissions(request, 'read:content', 'update:content'),
+    canPublishWebsite:
+      hasAdminAccess || hasPermissions(request, 'publish:content'),
   };
 }

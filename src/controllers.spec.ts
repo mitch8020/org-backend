@@ -81,25 +81,23 @@ describe('thin HTTP controllers', () => {
   });
 
   it('delegates profile operations and exposes capabilities', async () => {
-    const identity = {
-      email: 'admin@example.test',
-      emailVerified: true,
+    const synchronizedProfile = {
+      shippingAddress: { city: 'Nashville' },
+      isAdmin: true,
     };
-    const auth0UserInfo = {
-      getIdentity: jest.fn().mockResolvedValue(identity),
+    const adminAccess = {
+      synchronizeProfile: jest.fn().mockResolvedValue(synchronizedProfile),
+      hasAdminAccess: jest.fn().mockResolvedValue(true),
     };
     const profiles = {
-      getOrCreate: jest
-        .fn()
-        .mockResolvedValueOnce({ shippingAddress: { city: 'Nashville' } })
-        .mockResolvedValueOnce({}),
+      getOrCreate: jest.fn().mockResolvedValue({}),
       update: jest.fn().mockReturnValue('updated'),
       updateShipping: jest.fn().mockReturnValue('shipping'),
       deleteShipping: jest.fn().mockReturnValue('deleted'),
     };
     const controller = new ProfilesController(
       profiles as never,
-      auth0UserInfo as never,
+      adminAccess as never,
     );
     const profile = {
       preferredName: 'Member',
@@ -118,32 +116,57 @@ describe('thin HTTP controllers', () => {
       country: 'US' as const,
     };
 
-    await expect(controller.getMe(request)).resolves.toEqual({
-      shippingAddress: { city: 'Nashville' },
-    });
-    expect(controller.getCapabilities(request)).toEqual({
-      canManageOrders: false,
-      canEditWebsite: false,
-      canPublishWebsite: false,
+    await expect(controller.getMe(request)).resolves.toBe(synchronizedProfile);
+    await expect(controller.getCapabilities(request)).resolves.toEqual({
+      canManageOrders: true,
+      canEditWebsite: true,
+      canPublishWebsite: true,
     });
     expect(controller.updateMe(request, profile)).toBe('updated');
     await expect(controller.getShipping(request)).resolves.toBeNull();
     expect(controller.updateShipping(request, shipping)).toBe('shipping');
     expect(controller.deleteShipping(request)).toBe('deleted');
     expect(profiles.update).toHaveBeenCalledWith('auth0|member', profile);
-    expect(auth0UserInfo.getIdentity).toHaveBeenCalledWith(
-      request,
-      'auth0|member',
-    );
-    expect(profiles.getOrCreate).toHaveBeenNthCalledWith(
-      1,
-      'auth0|member',
-      identity,
-    );
+    expect(adminAccess.synchronizeProfile).toHaveBeenCalledWith(request);
+    expect(adminAccess.hasAdminAccess).toHaveBeenCalledWith(request);
+    expect(profiles.getOrCreate).toHaveBeenCalledWith('auth0|member');
     expect(profiles.updateShipping).toHaveBeenCalledWith(
       'auth0|member',
       shipping,
     );
+  });
+
+  it('uses complete Auth0 token capabilities without an allowlist lookup', async () => {
+    const adminAccess = {
+      hasAdminAccess: jest.fn(),
+    };
+    const controller = new ProfilesController(
+      {} as never,
+      adminAccess as never,
+    );
+    const administratorRequest = {
+      auth: {
+        payload: {
+          sub: 'auth0|admin',
+          permissions: [
+            'read:orders',
+            'update:orders',
+            'read:content',
+            'update:content',
+            'publish:content',
+          ],
+        },
+      },
+    } as AuthenticatedRequest;
+
+    await expect(
+      controller.getCapabilities(administratorRequest),
+    ).resolves.toEqual({
+      canManageOrders: true,
+      canEditWebsite: true,
+      canPublishWebsite: true,
+    });
+    expect(adminAccess.hasAdminAccess).not.toHaveBeenCalled();
   });
 
   it('returns a profile shipping address when one exists', async () => {

@@ -18,31 +18,38 @@ describe('PermissionsGuard', () => {
   const reflector = {
     getAllAndOverride: jest.fn(),
   };
-  const guard = new PermissionsGuard(reflector as never);
+  const adminAccess = {
+    hasAdminAccess: jest.fn(),
+  };
+  const guard = new PermissionsGuard(reflector as never, adminAccess as never);
 
-  beforeEach(() => reflector.getAllAndOverride.mockReset());
+  beforeEach(() => {
+    reflector.getAllAndOverride.mockReset();
+    adminAccess.hasAdminAccess.mockReset();
+  });
 
-  it('allows a token with every route permission', () => {
+  it('allows a token with every route permission', async () => {
     reflector.getAllAndOverride.mockReturnValue([
       'read:content',
       'update:content',
     ]);
 
-    expect(guard.canActivate(context(['read:content', 'update:content']))).toBe(
-      true,
-    );
+    await expect(
+      guard.canActivate(context(['read:content', 'update:content'])),
+    ).resolves.toBe(true);
+    expect(adminAccess.hasAdminAccess).not.toHaveBeenCalled();
   });
 
   it.each([undefined, []])(
     'allows routes without permission metadata',
-    (required) => {
+    async (required) => {
       reflector.getAllAndOverride.mockReturnValue(required);
 
-      expect(guard.canActivate(context([]))).toBe(true);
+      await expect(guard.canActivate(context([]))).resolves.toBe(true);
     },
   );
 
-  it('treats malformed token permissions as empty', () => {
+  it('treats malformed token permissions as empty', async () => {
     reflector.getAllAndOverride.mockReturnValue(['read:content']);
     const malformed = {
       ...context([]),
@@ -55,14 +62,30 @@ describe('PermissionsGuard', () => {
       }),
     } as ExecutionContext;
 
-    expect(() => guard.canActivate(malformed)).toThrow(ForbiddenException);
-  });
-
-  it('rejects a token that is missing a route permission', () => {
-    reflector.getAllAndOverride.mockReturnValue(['publish:content']);
-
-    expect(() => guard.canActivate(context(['read:content']))).toThrow(
+    adminAccess.hasAdminAccess.mockResolvedValue(false);
+    await expect(guard.canActivate(malformed)).rejects.toBeInstanceOf(
       ForbiddenException,
     );
+  });
+
+  it('rejects a token that is missing a route permission', async () => {
+    reflector.getAllAndOverride.mockReturnValue(['publish:content']);
+    adminAccess.hasAdminAccess.mockResolvedValue(false);
+
+    await expect(
+      guard.canActivate(context(['read:content'])),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('grants every route permission to an allowlisted administrator', async () => {
+    reflector.getAllAndOverride.mockReturnValue([
+      'read:content',
+      'update:content',
+      'publish:content',
+    ]);
+    adminAccess.hasAdminAccess.mockResolvedValue(true);
+
+    await expect(guard.canActivate(context([]))).resolves.toBe(true);
+    expect(adminAccess.hasAdminAccess).toHaveBeenCalled();
   });
 });

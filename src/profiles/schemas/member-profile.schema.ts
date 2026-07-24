@@ -45,6 +45,12 @@ export class MemberProfile {
   @Prop({ type: Boolean, default: false })
   authEmailVerified: boolean;
 
+  @Prop({ type: String })
+  authEmailTokenHash?: string;
+
+  @Prop({ type: Boolean, default: false })
+  isAdmin: boolean;
+
   @Prop({ type: String, default: '' })
   preferredName: string;
 

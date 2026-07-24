@@ -40,6 +40,11 @@ describe('auth permission helpers', () => {
       canEditWebsite: true,
       canPublishWebsite: true,
     });
+    expect(getCapabilities(request, true)).toEqual({
+      canManageOrders: true,
+      canEditWebsite: true,
+      canPublishWebsite: true,
+    });
   });
 
   it('ignores malformed permissions and requires every requested permission', () => {

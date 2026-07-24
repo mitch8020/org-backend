@@ -5,7 +5,6 @@ import {
   MemberProfile,
   MemberProfileDocument,
 } from './schemas/member-profile.schema';
-import type { Auth0Identity } from '../auth/auth0-user-info.service';
 import { ShippingAddressDto, UpdateProfileDto } from './profiles.dto';
 
 @Injectable()
@@ -15,29 +14,17 @@ export class ProfilesService {
     private readonly profileModel: Model<MemberProfileDocument>,
   ) {}
 
-  async getOrCreate(auth0Sub: string, identity?: Auth0Identity) {
-    const authEmail = identity?.email.trim().toLowerCase();
-    const update = {
-      $setOnInsert: {
-        auth0Sub,
-        ...(authEmail ? { email: authEmail } : {}),
-      },
-      ...(authEmail
-        ? {
-            $set: {
-              authEmail,
-              authEmailVerified: identity?.emailVerified === true,
-            },
-          }
-        : {}),
-    };
-
+  async getOrCreate(auth0Sub: string) {
     return this.profileModel
-      .findOneAndUpdate({ auth0Sub }, update, {
-        returnDocument: 'after',
-        upsert: true,
-        setDefaultsOnInsert: true,
-      })
+      .findOneAndUpdate(
+        { auth0Sub },
+        { $setOnInsert: { auth0Sub } },
+        {
+          returnDocument: 'after',
+          upsert: true,
+          setDefaultsOnInsert: true,
+        },
+      )
       .lean()
       .exec();
   }

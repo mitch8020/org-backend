@@ -5,14 +5,18 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { AdminAccessService } from './admin-access.service';
 import type { AuthenticatedRequest } from './auth.types';
 import { PERMISSIONS_KEY } from './permissions.decorator';
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
-  constructor(private readonly reflector: Reflector) {}
+  constructor(
+    private readonly reflector: Reflector,
+    private readonly adminAccess: AdminAccessService,
+  ) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const required = this.reflector.getAllAndOverride<string[]>(
       PERMISSIONS_KEY,
       [context.getHandler(), context.getClass()],
@@ -26,11 +30,13 @@ export class PermissionsGuard implements CanActivate {
           (permission): permission is string => typeof permission === 'string',
         )
       : [];
-    if (!required.every((permission) => permissions.includes(permission))) {
-      throw new ForbiddenException(
-        'Your account does not have permission to perform this action.',
-      );
+    if (required.every((permission) => permissions.includes(permission))) {
+      return true;
     }
-    return true;
+    if (await this.adminAccess.hasAdminAccess(request)) return true;
+
+    throw new ForbiddenException(
+      'Your account does not have permission to perform this action.',
+    );
   }
 }

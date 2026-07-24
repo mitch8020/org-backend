@@ -42,42 +42,6 @@ describe('ProfilesService', () => {
     }
   });
 
-  it('stores the trusted Auth0 email separately from editable contact data', async () => {
-    const result = {
-      auth0Sub: 'auth0|member',
-      authEmail: 'admin@example.test',
-    };
-    const updateQuery = query(result);
-    const model = { findOneAndUpdate: jest.fn(() => updateQuery) };
-    const service = new ProfilesService(model as never);
-
-    await expect(
-      service.getOrCreate('auth0|member', {
-        email: ' ADMIN@EXAMPLE.TEST ',
-        emailVerified: true,
-      }),
-    ).resolves.toBe(result);
-
-    expect(model.findOneAndUpdate).toHaveBeenCalledWith(
-      { auth0Sub: 'auth0|member' },
-      {
-        $setOnInsert: {
-          auth0Sub: 'auth0|member',
-          email: 'admin@example.test',
-        },
-        $set: {
-          authEmail: 'admin@example.test',
-          authEmailVerified: true,
-        },
-      },
-      {
-        returnDocument: 'after',
-        upsert: true,
-        setDefaultsOnInsert: true,
-      },
-    );
-  });
-
   it('normalizes editable profile fields', async () => {
     const result = { preferredName: 'Member' };
     const updateQuery = query(result);

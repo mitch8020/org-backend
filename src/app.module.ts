@@ -27,6 +27,7 @@ import { ContentModule } from './content/content.module';
         DNS_SERVERS: Joi.string().allow('').optional(),
         AUTH0_ISSUER_BASE_URL: Joi.string().uri().required(),
         AUTH0_AUDIENCE: Joi.string().required(),
+        WHITE_LISTED_EMAILS: Joi.string().allow('').default(''),
         CLIENT_ORIGIN_URL: Joi.string().required(),
         PUBLIC_APP_URL: Joi.string().uri().required(),
         PAYPAL_DONATION_URL: Joi.string().uri().required(),

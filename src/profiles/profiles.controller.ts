@@ -7,7 +7,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { Auth0UserInfoService } from '../auth/auth0-user-info.service';
+import { AdminAccessService } from '../auth/admin-access.service';
 import { Auth0Guard } from '../auth/auth.guard';
 import { getCapabilities, getUserSub } from '../auth/auth.helpers';
 import type { AuthenticatedRequest } from '../auth/auth.types';
@@ -19,19 +19,24 @@ import { ShippingAddressDto, UpdateProfileDto } from './profiles.dto';
 export class ProfilesController {
   constructor(
     private readonly profiles: ProfilesService,
-    private readonly auth0UserInfo: Auth0UserInfoService,
+    private readonly adminAccess: AdminAccessService,
   ) {}
 
   @Get()
   async getMe(@Req() request: AuthenticatedRequest) {
-    const auth0Sub = getUserSub(request);
-    const identity = await this.auth0UserInfo.getIdentity(request, auth0Sub);
-    return this.profiles.getOrCreate(auth0Sub, identity);
+    return this.adminAccess.synchronizeProfile(request);
   }
 
   @Get('capabilities')
-  getCapabilities(@Req() request: AuthenticatedRequest) {
-    return getCapabilities(request);
+  async getCapabilities(@Req() request: AuthenticatedRequest) {
+    const tokenCapabilities = getCapabilities(request);
+    if (Object.values(tokenCapabilities).every(Boolean)) {
+      return tokenCapabilities;
+    }
+    return getCapabilities(
+      request,
+      await this.adminAccess.hasAdminAccess(request),
+    );
   }
 
   @Patch()
