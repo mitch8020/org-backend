@@ -6,6 +6,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppController } from '../src/app.controller';
+import { Auth0UserInfoService } from '../src/auth/auth0-user-info.service';
 import { Auth0Guard, OptionalAuth0Guard } from '../src/auth/auth.guard';
 import { PermissionsGuard } from '../src/auth/permissions.guard';
 import { CartsController } from '../src/carts/carts.controller';
@@ -55,6 +56,12 @@ describe('ORG API (e2e)', () => {
     update: jest.fn().mockResolvedValue({ auth0Sub: 'auth0|e2e' }),
     updateShipping: jest.fn(),
     deleteShipping: jest.fn(),
+  };
+  const auth0UserInfo = {
+    getIdentity: jest.fn().mockResolvedValue({
+      email: 'admin@example.test',
+      emailVerified: true,
+    }),
   };
   const orders = {
     listForMember: jest.fn().mockResolvedValue([{ id: 'order-1' }]),
@@ -120,6 +127,7 @@ describe('ORG API (e2e)', () => {
         { provide: CartsService, useValue: carts },
         { provide: ProductsService, useValue: products },
         { provide: ProfilesService, useValue: profiles },
+        { provide: Auth0UserInfoService, useValue: auth0UserInfo },
         { provide: OrdersService, useValue: orders },
         { provide: ContentService, useValue: content },
         {
@@ -230,7 +238,10 @@ describe('ORG API (e2e)', () => {
       .set('Authorization', 'Bearer e2e')
       .expect(200)
       .expect([{ id: 'order-1' }]);
-    expect(profiles.getOrCreate).toHaveBeenCalledWith('auth0|e2e');
+    expect(profiles.getOrCreate).toHaveBeenCalledWith('auth0|e2e', {
+      email: 'admin@example.test',
+      emailVerified: true,
+    });
     expect(orders.listForMember).toHaveBeenCalledWith('auth0|e2e');
   });
 

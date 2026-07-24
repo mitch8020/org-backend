@@ -81,6 +81,13 @@ describe('thin HTTP controllers', () => {
   });
 
   it('delegates profile operations and exposes capabilities', async () => {
+    const identity = {
+      email: 'admin@example.test',
+      emailVerified: true,
+    };
+    const auth0UserInfo = {
+      getIdentity: jest.fn().mockResolvedValue(identity),
+    };
     const profiles = {
       getOrCreate: jest
         .fn()
@@ -90,7 +97,10 @@ describe('thin HTTP controllers', () => {
       updateShipping: jest.fn().mockReturnValue('shipping'),
       deleteShipping: jest.fn().mockReturnValue('deleted'),
     };
-    const controller = new ProfilesController(profiles as never);
+    const controller = new ProfilesController(
+      profiles as never,
+      auth0UserInfo as never,
+    );
     const profile = {
       preferredName: 'Member',
       email: 'member@example.test',
@@ -121,6 +131,15 @@ describe('thin HTTP controllers', () => {
     expect(controller.updateShipping(request, shipping)).toBe('shipping');
     expect(controller.deleteShipping(request)).toBe('deleted');
     expect(profiles.update).toHaveBeenCalledWith('auth0|member', profile);
+    expect(auth0UserInfo.getIdentity).toHaveBeenCalledWith(
+      request,
+      'auth0|member',
+    );
+    expect(profiles.getOrCreate).toHaveBeenNthCalledWith(
+      1,
+      'auth0|member',
+      identity,
+    );
     expect(profiles.updateShipping).toHaveBeenCalledWith(
       'auth0|member',
       shipping,
@@ -133,7 +152,7 @@ describe('thin HTTP controllers', () => {
         .fn()
         .mockResolvedValue({ shippingAddress: { city: 'Nashville' } }),
     };
-    const controller = new ProfilesController(profiles as never);
+    const controller = new ProfilesController(profiles as never, {} as never);
 
     await expect(controller.getShipping(request)).resolves.toEqual({
       city: 'Nashville',

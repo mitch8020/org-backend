@@ -39,6 +39,12 @@ export class MemberProfile {
   @Prop({ type: String, required: true, unique: true, index: true })
   auth0Sub: string;
 
+  @Prop({ type: String, trim: true, lowercase: true, index: true })
+  authEmail?: string;
+
+  @Prop({ type: Boolean, default: false })
+  authEmailVerified: boolean;
+
   @Prop({ type: String, default: '' })
   preferredName: string;
 

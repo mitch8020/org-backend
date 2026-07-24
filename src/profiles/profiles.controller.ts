@@ -7,6 +7,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { Auth0UserInfoService } from '../auth/auth0-user-info.service';
 import { Auth0Guard } from '../auth/auth.guard';
 import { getCapabilities, getUserSub } from '../auth/auth.helpers';
 import type { AuthenticatedRequest } from '../auth/auth.types';
@@ -16,11 +17,16 @@ import { ShippingAddressDto, UpdateProfileDto } from './profiles.dto';
 @Controller('me')
 @UseGuards(Auth0Guard)
 export class ProfilesController {
-  constructor(private readonly profiles: ProfilesService) {}
+  constructor(
+    private readonly profiles: ProfilesService,
+    private readonly auth0UserInfo: Auth0UserInfoService,
+  ) {}
 
   @Get()
-  getMe(@Req() request: AuthenticatedRequest) {
-    return this.profiles.getOrCreate(getUserSub(request));
+  async getMe(@Req() request: AuthenticatedRequest) {
+    const auth0Sub = getUserSub(request);
+    const identity = await this.auth0UserInfo.getIdentity(request, auth0Sub);
+    return this.profiles.getOrCreate(auth0Sub, identity);
   }
 
   @Get('capabilities')
