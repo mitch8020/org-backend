@@ -4,16 +4,16 @@ import type { WebsitePageContent, WebsitePageId } from '../content.types';
 
 @Schema({ _id: false })
 export class PublishedRevision {
-  @Prop({ required: true, min: 1 })
+  @Prop({ type: Number, required: true, min: 1 })
   revision: number;
 
   @Prop({ type: MongooseSchema.Types.Mixed, required: true })
   content: WebsitePageContent;
 
-  @Prop({ required: true })
+  @Prop({ type: Date, required: true })
   publishedAt: Date;
 
-  @Prop({ required: true })
+  @Prop({ type: String, required: true })
   publishedBy: string;
 }
 
@@ -22,19 +22,19 @@ export const PublishedRevisionSchema =
 
 @Schema({ _id: false })
 export class WebsiteDraft {
-  @Prop({ required: true, min: 1 })
+  @Prop({ type: Number, required: true, min: 1 })
   revision: number;
 
-  @Prop({ required: true, min: 1 })
+  @Prop({ type: Number, required: true, min: 1 })
   basedOnPublishedRevision: number;
 
   @Prop({ type: MongooseSchema.Types.Mixed, required: true })
   content: WebsitePageContent;
 
-  @Prop({ required: true })
+  @Prop({ type: Date, required: true })
   updatedAt: Date;
 
-  @Prop({ required: true })
+  @Prop({ type: String, required: true })
   updatedBy: string;
 }
 

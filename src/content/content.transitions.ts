@@ -31,7 +31,7 @@ export function createPublication(
   publishedAt: Date,
 ): PublicationTransition {
   assertExpectedDraftRevision(page, expectedDraftRevision);
-  if (!page.draft || expectedDraftRevision === null) {
+  if (!page.draft) {
     throw new ConflictException('Save a draft before publishing.');
   }
   if (page.draft.basedOnPublishedRevision !== page.published.revision) {

@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppController } from './app.controller';
+import { AppService } from './app.service';
 
 describe('AppController', () => {
   let appController: AppController;
@@ -19,5 +20,9 @@ describe('AppController', () => {
         service: 'org-backend',
       });
     });
+  });
+
+  it('returns the starter service greeting', () => {
+    expect(new AppService().getHello()).toBe('Hello World!');
   });
 });

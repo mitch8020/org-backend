@@ -33,6 +33,31 @@ describe('PermissionsGuard', () => {
     );
   });
 
+  it.each([undefined, []])(
+    'allows routes without permission metadata',
+    (required) => {
+      reflector.getAllAndOverride.mockReturnValue(required);
+
+      expect(guard.canActivate(context([]))).toBe(true);
+    },
+  );
+
+  it('treats malformed token permissions as empty', () => {
+    reflector.getAllAndOverride.mockReturnValue(['read:content']);
+    const malformed = {
+      ...context([]),
+      switchToHttp: () => ({
+        getRequest: () => ({
+          auth: {
+            payload: { sub: 'auth0|member', permissions: 'read:content' },
+          },
+        }),
+      }),
+    } as ExecutionContext;
+
+    expect(() => guard.canActivate(malformed)).toThrow(ForbiddenException);
+  });
+
   it('rejects a token that is missing a route permission', () => {
     reflector.getAllAndOverride.mockReturnValue(['publish:content']);
 

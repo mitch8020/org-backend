@@ -6,28 +6,28 @@ export type ContactMethod = 'email' | 'signal' | 'telegram';
 
 @Schema({ _id: false })
 export class ShippingAddress {
-  @Prop({ required: true })
+  @Prop({ type: String, required: true })
   recipientName: string;
 
-  @Prop({ required: true })
+  @Prop({ type: String, required: true })
   line1: string;
 
-  @Prop()
+  @Prop({ type: String })
   line2?: string;
 
-  @Prop({ required: true })
+  @Prop({ type: String, required: true })
   city: string;
 
-  @Prop({ required: true })
+  @Prop({ type: String, required: true })
   state: string;
 
-  @Prop({ required: true })
+  @Prop({ type: String, required: true })
   postalCode: string;
 
-  @Prop({ default: 'US' })
+  @Prop({ type: String, default: 'US' })
   country: 'US';
 
-  @Prop()
+  @Prop({ type: String })
   phone?: string;
 }
 
@@ -36,25 +36,25 @@ export const ShippingAddressSchema =
 
 @Schema({ timestamps: true })
 export class MemberProfile {
-  @Prop({ required: true, unique: true, index: true })
+  @Prop({ type: String, required: true, unique: true, index: true })
   auth0Sub: string;
 
-  @Prop({ default: '' })
+  @Prop({ type: String, default: '' })
   preferredName: string;
 
-  @Prop({ default: '' })
+  @Prop({ type: String, default: '' })
   email: string;
 
-  @Prop({ default: 'private' })
+  @Prop({ type: String, default: 'private' })
   membershipType: MembershipType;
 
-  @Prop({ default: 'email' })
+  @Prop({ type: String, default: 'email' })
   contactMethod: ContactMethod;
 
-  @Prop({ default: '' })
+  @Prop({ type: String, default: '' })
   contactHandle: string;
 
-  @Prop({ default: '' })
+  @Prop({ type: String, default: '' })
   beliefsSummary: string;
 
   @Prop({ type: ShippingAddressSchema })

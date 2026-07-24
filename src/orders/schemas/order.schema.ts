@@ -14,31 +14,31 @@ export type OrderStatus =
 
 @Schema({ _id: false })
 export class OrderItemSnapshot {
-  @Prop({ required: true })
+  @Prop({ type: String, required: true })
   productSlug: string;
 
-  @Prop({ required: true })
+  @Prop({ type: String, required: true })
   productName: string;
 
-  @Prop({ required: true })
+  @Prop({ type: String, required: true })
   variantId: string;
 
-  @Prop({ required: true })
+  @Prop({ type: String, required: true })
   variantLabel: string;
 
-  @Prop({ required: true })
+  @Prop({ type: Number, required: true })
   quantity: number;
 
-  @Prop()
+  @Prop({ type: String })
   note?: string;
 
-  @Prop({ required: true })
+  @Prop({ type: Number, required: true })
   unitSuggestedDonationCents: number;
 
-  @Prop({ required: true })
+  @Prop({ type: Number, required: true })
   lineSuggestedDonationCents: number;
 
-  @Prop({ required: true })
+  @Prop({ type: String, required: true })
   imageUrl: string;
 }
 
@@ -47,16 +47,16 @@ export const OrderItemSnapshotSchema =
 
 @Schema({ _id: false })
 export class OrderContactSnapshot {
-  @Prop({ required: true })
+  @Prop({ type: String, required: true })
   preferredName: string;
 
-  @Prop({ required: true })
+  @Prop({ type: String, required: true })
   email: string;
 
-  @Prop({ required: true })
+  @Prop({ type: String, required: true })
   contactMethod: string;
 
-  @Prop({ required: true })
+  @Prop({ type: String, required: true })
   contactHandle: string;
 }
 
@@ -65,13 +65,13 @@ export const OrderContactSnapshotSchema =
 
 @Schema({ _id: false })
 export class OrderStatusEvent {
-  @Prop({ required: true })
+  @Prop({ type: String, required: true })
   status: OrderStatus;
 
-  @Prop({ required: true })
+  @Prop({ type: Date, required: true })
   at: Date;
 
-  @Prop({ required: true })
+  @Prop({ type: String, required: true })
   actor: 'member' | 'admin' | 'system';
 }
 
@@ -80,13 +80,13 @@ export const OrderStatusEventSchema =
 
 @Schema({ _id: false })
 export class DonationReport {
-  @Prop({ required: true })
+  @Prop({ type: String, required: true })
   method: 'paypal' | 'venmo';
 
-  @Prop()
+  @Prop({ type: Number })
   amountCents?: number;
 
-  @Prop({ required: true })
+  @Prop({ type: Date, required: true })
   reportedAt: Date;
 }
 
@@ -95,16 +95,16 @@ export const DonationReportSchema =
 
 @Schema({ timestamps: true })
 export class Order {
-  @Prop({ required: true, unique: true, index: true })
+  @Prop({ type: String, required: true, unique: true, index: true })
   orderNumber: string;
 
-  @Prop({ required: true, index: true })
+  @Prop({ type: String, required: true, index: true })
   ownerSub: string;
 
-  @Prop({ required: true })
+  @Prop({ type: String, required: true })
   idempotencyKey: string;
 
-  @Prop({ required: true })
+  @Prop({ type: String, required: true })
   donationMemo: string;
 
   @Prop({ type: [OrderItemSnapshotSchema], required: true })
@@ -116,19 +116,19 @@ export class Order {
   @Prop({ type: ShippingAddressSchema, required: true })
   shippingAddress: ShippingAddress;
 
-  @Prop({ required: true })
+  @Prop({ type: Number, required: true })
   suggestedItemsCents: number;
 
-  @Prop({ required: true })
+  @Prop({ type: Number, required: true })
   suggestedShippingCents: number;
 
-  @Prop({ required: true })
+  @Prop({ type: Number, required: true })
   suggestedTotalCents: number;
 
-  @Prop()
+  @Prop({ type: Number })
   declaredDonationCents?: number;
 
-  @Prop({ default: 'awaiting_donation', index: true })
+  @Prop({ type: String, default: 'awaiting_donation', index: true })
   status: OrderStatus;
 
   @Prop({ type: [OrderStatusEventSchema], default: [] })
@@ -137,13 +137,13 @@ export class Order {
   @Prop({ type: DonationReportSchema })
   donationReport?: DonationReport;
 
-  @Prop()
+  @Prop({ type: String })
   trackingNumber?: string;
 
-  @Prop({ default: 'pending' })
+  @Prop({ type: String, default: 'pending' })
   emailState: 'pending' | 'sent' | 'failed' | 'skipped';
 
-  @Prop()
+  @Prop({ type: String })
   emailError?: string;
 
   createdAt?: Date;

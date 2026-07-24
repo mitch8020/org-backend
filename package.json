@@ -17,7 +17,8 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:all": "npm run test:cov && npm run test:e2e"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
@@ -70,11 +71,45 @@
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
+      "^.+\\.(t|j)s$": [
+        "ts-jest",
+        {
+          "tsconfig": {
+            "emitDecoratorMetadata": false
+          }
+        }
+      ]
     },
     "collectCoverageFrom": [
-      "**/*.(t|j)s"
+      "app.controller.ts",
+      "app.service.ts",
+      "auth/auth.guard.ts",
+      "auth/auth.helpers.ts",
+      "auth/permissions.guard.ts",
+      "carts/carts.controller.ts",
+      "carts/carts.service.ts",
+      "config/dns.ts",
+      "content/content.controller.ts",
+      "content/content.presenters.ts",
+      "content/content.service.ts",
+      "content/content.transitions.ts",
+      "content/content.validation.ts",
+      "notifications/notifications.service.ts",
+      "orders/orders.controller.ts",
+      "orders/orders.service.ts",
+      "products/products.controller.ts",
+      "products/products.service.ts",
+      "profiles/profiles.controller.ts",
+      "profiles/profiles.service.ts"
     ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 100,
+        "functions": 100,
+        "lines": 100,
+        "statements": 100
+      }
+    },
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
   }

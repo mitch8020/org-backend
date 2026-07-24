@@ -1,6 +1,7 @@
 import {
   getCapabilities,
   getPermissions,
+  getUserSub,
   hasPermissions,
 } from './auth.helpers';
 import type { AuthenticatedRequest } from './auth.types';
@@ -17,6 +18,16 @@ function requestWith(permissions: unknown): AuthenticatedRequest {
 }
 
 describe('auth permission helpers', () => {
+  it('returns the authenticated subject', () => {
+    expect(getUserSub(requestWith([]))).toBe('auth0|member');
+  });
+
+  it('rejects a request without an authenticated subject', () => {
+    expect(() => getUserSub({ headers: {} } as AuthenticatedRequest)).toThrow(
+      'A valid member identity is required.',
+    );
+  });
+
   it('maps independent shop and website capabilities', () => {
     const request = requestWith([
       'read:content',
@@ -36,5 +47,6 @@ describe('auth permission helpers', () => {
 
     expect(getPermissions(request)).toEqual(['read:orders']);
     expect(hasPermissions(request, 'read:orders', 'update:orders')).toBe(false);
+    expect(getPermissions(requestWith('read:orders'))).toEqual([]);
   });
 });

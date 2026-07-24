@@ -91,6 +91,33 @@ describe('content transitions', () => {
     ).toThrow(ConflictException);
   });
 
+  it('requires a saved draft before publishing', () => {
+    const page = pageFixture();
+    page.draft = null;
+
+    expect(() =>
+      createPublication(page, null, 'auth0|publisher', new Date()),
+    ).toThrow(ConflictException);
+  });
+
+  it('rejects a draft based on an older publication', () => {
+    const page = pageFixture();
+    page.draft!.basedOnPublishedRevision = 2;
+
+    expect(() =>
+      createPublication(page, 2, 'auth0|publisher', new Date()),
+    ).toThrow(ConflictException);
+  });
+
+  it('publishes when historical revisions have not been initialized', () => {
+    const page = pageFixture();
+    page.history = undefined;
+
+    expect(
+      createPublication(page, 2, 'auth0|publisher', new Date()).history,
+    ).toEqual([page.published]);
+  });
+
   it('restores archived content as a new draft', () => {
     const page = pageFixture();
     const source = page.history?.[1];

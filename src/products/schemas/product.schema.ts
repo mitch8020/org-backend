@@ -8,13 +8,13 @@ export type ProductCategory =
 
 @Schema({ _id: false })
 export class ProductVariant {
-  @Prop({ required: true })
+  @Prop({ type: String, required: true })
   id: string;
 
-  @Prop({ required: true })
+  @Prop({ type: String, required: true })
   label: string;
 
-  @Prop()
+  @Prop({ type: Number })
   suggestedDonationCents?: number;
 
   @Prop({ type: Object, default: {} })
@@ -26,31 +26,31 @@ export const ProductVariantSchema =
 
 @Schema({ timestamps: true })
 export class Product {
-  @Prop({ required: true, unique: true, index: true })
+  @Prop({ type: String, required: true, unique: true, index: true })
   slug: string;
 
-  @Prop({ required: true })
+  @Prop({ type: String, required: true })
   name: string;
 
-  @Prop({ required: true })
+  @Prop({ type: String, required: true })
   category: ProductCategory;
 
-  @Prop({ required: true })
+  @Prop({ type: String, required: true })
   summary: string;
 
-  @Prop({ required: true })
+  @Prop({ type: String, required: true })
   description: string;
 
   @Prop({ type: [String], default: [] })
   specifications: string[];
 
-  @Prop({ required: true })
+  @Prop({ type: String, required: true })
   imageUrl: string;
 
-  @Prop({ required: true })
+  @Prop({ type: String, required: true })
   imageAlt: string;
 
-  @Prop({ default: 'active' })
+  @Prop({ type: String, default: 'active' })
   availability: 'active' | 'made-to-order' | 'paused';
 
   @Prop({ type: [ProductVariantSchema], required: true })

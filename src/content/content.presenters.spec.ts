@@ -62,4 +62,21 @@ describe('content presenters', () => {
     expect(response.history).toHaveLength(1);
     expect(response.history[0].publishedAt).toBe('2026-07-19T00:00:00.000Z');
   });
+
+  it('uses publication metadata when draft and history are absent', () => {
+    const publishedOnly = {
+      ...page,
+      draft: null,
+      history: undefined,
+    };
+
+    expect(toWebsitePageSummary(publishedOnly)).toMatchObject({
+      draftRevision: null,
+      updatedAt: '2026-07-20T00:00:00.000Z',
+    });
+    expect(toAdminWebsitePage(publishedOnly)).toMatchObject({
+      draft: null,
+      history: [],
+    });
+  });
 });

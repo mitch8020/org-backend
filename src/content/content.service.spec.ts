@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { ConflictException } from '@nestjs/common';
 import { ContentService } from './content.service';
 import { INITIAL_WEBSITE_PAGES } from './initial-content';
@@ -68,6 +69,109 @@ describe('ContentService', () => {
     }
   });
 
+  it('lists and retrieves public and administrator page views', async () => {
+    const current = pageFixture();
+    const model = {
+      find: jest
+        .fn()
+        .mockReturnValueOnce(query([current]))
+        .mockReturnValueOnce(query([current])),
+      findOne: jest
+        .fn()
+        .mockReturnValueOnce(query(current))
+        .mockReturnValueOnce(query(current)),
+    };
+    const service = new ContentService(model as never);
+
+    await expect(service.listPublic()).resolves.toEqual([
+      expect.objectContaining({ pageId: current.pageId, revision: 3 }),
+    ]);
+    await expect(service.getPublic(current.pageId)).resolves.toMatchObject({
+      pageId: current.pageId,
+      revision: 3,
+    });
+    await expect(service.listAdmin()).resolves.toEqual([
+      expect.objectContaining({ pageId: current.pageId, draftRevision: 2 }),
+    ]);
+    await expect(service.getAdmin(current.pageId)).resolves.toMatchObject({
+      pageId: current.pageId,
+      draft: expect.objectContaining({ revision: 2 }),
+    });
+  });
+
+  it('rejects a page that is valid but missing from storage', async () => {
+    const model = { findOne: jest.fn(() => query(null)) };
+    const service = new ContentService(model as never);
+
+    await expect(service.getPublic('community')).rejects.toThrow(
+      'That website page does not exist.',
+    );
+  });
+
+  it.each([
+    ['new', null],
+    ['existing', 2],
+  ])(
+    'saves a %s draft using optimistic revision matching',
+    async (_name, expected) => {
+      const current = pageFixture();
+      if (expected === null) current.draft = undefined;
+      const updated = {
+        ...current,
+        draft: {
+          revision: expected === null ? 1 : 3,
+          basedOnPublishedRevision: 3,
+          content: current.published.content,
+          updatedAt: new Date(),
+          updatedBy: 'auth0|editor',
+        },
+      };
+      let updateFilter: Record<string, unknown> | undefined;
+      const model = {
+        findOne: jest.fn(() => query(current)),
+        findOneAndUpdate: jest.fn((filter: Record<string, unknown>) => {
+          updateFilter = filter;
+          return query(updated);
+        }),
+      };
+      const service = new ContentService(model as never);
+
+      const result = await service.saveDraft(
+        current.pageId,
+        expected,
+        current.published.content,
+        'auth0|editor',
+      );
+
+      expect(updateFilter).toMatchObject({
+        pageId: current.pageId,
+        'published.revision': 3,
+        ...(expected === null
+          ? { draft: { $exists: false } }
+          : { 'draft.revision': 2 }),
+      });
+      expect(result.draft?.revision).toBe(expected === null ? 1 : 3);
+    },
+  );
+
+  it('reports a conflict when a draft save loses its update race', async () => {
+    const current = pageFixture();
+    const model = {
+      findOne: jest.fn(() => query(current)),
+      findOneAndUpdate: jest.fn(() => query(null)),
+    };
+    const service = new ContentService(model as never);
+
+    await expect(
+      service.saveDraft(
+        current.pageId,
+        2,
+        current.draft.content,
+        'auth0|editor',
+      ),
+    ).rejects.toBeInstanceOf(ConflictException);
+  });
+
   it('publishes the expected draft and keeps ten historical revisions', async () => {
     const current = pageFixture();
     const updated = {
@@ -129,6 +233,19 @@ describe('ContentService', () => {
     expect(result.draft).toBeNull();
   });
 
+  it('reports a conflict when publishing loses its update race', async () => {
+    const current = pageFixture();
+    const model = {
+      findOne: jest.fn(() => query(current)),
+      findOneAndUpdate: jest.fn(() => query(null)),
+    };
+    const service = new ContentService(model as never);
+
+    await expect(
+      service.publish(current.pageId, 2, 'auth0|publisher'),
+    ).rejects.toBeInstanceOf(ConflictException);
+  });
+
   it('rejects a stale draft revision before writing', async () => {
     const current = pageFixture();
     const model = {
@@ -169,6 +286,34 @@ describe('ContentService', () => {
     });
     expect(result.draft).toBeNull();
     expect(result.published.revision).toBe(3);
+  });
+
+  it('returns the page unchanged when there is no draft to discard', async () => {
+    const current = pageFixture();
+    current.draft = undefined;
+    const model = {
+      findOne: jest.fn(() => query(current)),
+      findOneAndUpdate: jest.fn(),
+    };
+    const service = new ContentService(model as never);
+
+    const result = await service.discardDraft(current.pageId, null);
+
+    expect(result.draft).toBeNull();
+    expect(model.findOneAndUpdate).not.toHaveBeenCalled();
+  });
+
+  it('reports a conflict when discarding loses its update race', async () => {
+    const current = pageFixture();
+    const model = {
+      findOne: jest.fn(() => query(current)),
+      findOneAndUpdate: jest.fn(() => query(null)),
+    };
+    const service = new ContentService(model as never);
+
+    await expect(
+      service.discardDraft(current.pageId, 2),
+    ).rejects.toBeInstanceOf(ConflictException);
   });
 
   it('restores an archived revision into a new draft without publishing it', async () => {
@@ -214,5 +359,57 @@ describe('ContentService', () => {
     expect(result.published.revision).toBe(3);
     expect(result.draft?.revision).toBe(3);
     expect(result.draft?.content).toEqual(source.content);
+  });
+
+  it('restores a revision when no draft exists', async () => {
+    const current = pageFixture();
+    current.draft = undefined;
+    const source = current.history[0];
+    const updated = {
+      ...current,
+      draft: {
+        revision: 1,
+        basedOnPublishedRevision: 3,
+        content: source.content,
+        updatedAt: new Date(),
+        updatedBy: 'auth0|restorer',
+      },
+    };
+    let filter: Record<string, unknown> | undefined;
+    const model = {
+      findOne: jest.fn(() => query(current)),
+      findOneAndUpdate: jest.fn((value: Record<string, unknown>) => {
+        filter = value;
+        return query(updated);
+      }),
+    };
+    const service = new ContentService(model as never);
+
+    await service.restoreRevision(
+      current.pageId,
+      source.revision,
+      null,
+      'auth0|restorer',
+    );
+
+    expect(filter).toMatchObject({ draft: { $exists: false } });
+  });
+
+  it('reports a conflict when restoring loses its update race', async () => {
+    const current = pageFixture();
+    const model = {
+      findOne: jest.fn(() => query(current)),
+      findOneAndUpdate: jest.fn(() => query(null)),
+    };
+    const service = new ContentService(model as never);
+
+    await expect(
+      service.restoreRevision(
+        current.pageId,
+        current.history[0].revision,
+        2,
+        'auth0|restorer',
+      ),
+    ).rejects.toBeInstanceOf(ConflictException);
   });
 });
